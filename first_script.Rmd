@@ -122,31 +122,57 @@ It is important to note that both of the first two regions include only 2 countr
 
 The unhappiest region is Sub-Saharan Africa, which includes 40 different countries.
 
-#Correlogram
+#What factors have strong relationship with Happiness? 
 Now we can create a correlogram to analyze the relationships. To do that we need only numeric columns.
 ```{r}
 names(happy_2015_copy)
 num_hap <- happy_2015_copy[, c("happiness_rank", "happiness_score", "std_error", "gdp_per_cpt", "family", "life_exp", "freedom", "trust_corruption", "generosity", "dystopia_residual")]
 ```
 
+I like to use rquery to create a heatmap and see the correlations, as it is very efficient.
 ```{r}
 library(corrplot)
 source("http://www.sthda.com/upload/rquery_cormat.r")
 rquery.cormat(num_hap)
 ```
 
+#Strong Positive Correlations(corr>+0.7) with Happiness Score
+*Gdp Per Capita
+```{r}
+cor(happy_2015$happiness_score, happy_2015$gdp_per_cpt)
+```
+Countries that have higher gdp per capita seems to be happier. Since higher gdp per capita indicates a better standard of living for a country, it makes sense.
+
+*Family
+```{r}
+cor(happy_2015$happiness_score, happy_2015$family)
+```
+Although the explanation family attribute is not clear in the metadata, family contributes to happier people.
 
 
+*Life Expectancy
+```{r}
+cor(happy_2015$happiness_score, happy_2015$life_exp)
+```
+Life expectancy, probably the average years of life contributes to happier positively.
 
 
+*Insight: Freedom doesn't have a great influence on the happiness 
+```{r}
+cor(happy_2015$happiness_score, happy_2015$freedom)
+```
 
-
-
-
+#Happiest Regions vs. Unhappiest Region
 #Subsetting our dataset
 Now we have subsetted the dataset into the regions we can do analysis on each region.
 ```{r}
 unique(happy_2015$region)
+#############################
+#Happiest Regions
+#############################
+
+#Australia & New Zealand
+aust_newzealand <- happy_2015[which(happy_2015$region == "Australia and New Zealand"), ]
 
 #Subsetting Western Europe
 w_europe <- happy_2015[which(happy_2015$region == "Western Europe"), ]
@@ -154,26 +180,58 @@ w_europe <- happy_2015[which(happy_2015$region == "Western Europe"), ]
 #North America
 n_america <- happy_2015[which(happy_2015$region == "North America"), ]
 
-#Latin America & Caribbean
-n_america <- happy_2015[which(happy_2015$region == "Latin America and Caribbean"), ]
+#Happiest regions Altogether
+happy_regions <- rbind(aust_newzealand, w_europe, n_america)
 
-#Middle East and Northern Africa
-m_east_n_africa <- happy_2015[which(happy_2015$region == "Middle East and Northern Africa"), ]
 
-#Australia & New Zealand
-aust_newzealand <- happy_2015[which(happy_2015$region == "Australia and New Zealand"), ]
-
-#Central and Eastern Europe
-central_easteu <- happy_2015[which(happy_2015$region == "Central and Eastern Europe"), ]
-
-#Eastern Asia
-east_asia <- happy_2015[which(happy_2015$region == "Eastern Asia"), ]
-
+#############################
+#  Unhappiest Region
+#############################
 #Sub-Saharan Africa
 sub_saharan_africa <- happy_2015[which(happy_2015$region == "Sub-Saharan Africa"), ]
 
+
+#############################
+# Other Regions
+#############################
+#Latin America & Caribbean
+l_america <- happy_2015[which(happy_2015$region == "Latin America and Caribbean"), ]
+#Middle East and Northern Africa
+m_east_n_africa <- happy_2015[which(happy_2015$region == "Middle East and Northern Africa"), ]
+#Central and Eastern Europe
+central_easteu <- happy_2015[which(happy_2015$region == "Central and Eastern Europe"), ]
+#Eastern Asia
+east_asia <- happy_2015[which(happy_2015$region == "Eastern Asia"), ]
 #Southern Asia
 south_asia <- happy_2015[which(happy_2015$region == "Southern Asia"), ]
+
+```
+
+#Happiest Regions
+
+*Distributions with Histogram
+```{r, warning=FALSE}
+library(ggplot2)
+column_names <- colnames(num_hap_regions)
+par(mfrow = c(5, 2))
+for (i in 1:ncol(num_hap_regions)) {
+  show(try(ggplot(num_hap_regions, aes(num_hap_regions[,i])) + 
+        geom_histogram(fill="gray") + xlab(column_names[i])))}
+
+```
+
+
+#GDP per Capita & Countries in the Happiest Regions
+```{r}
+ggplot(happy_regions, aes(x=happy_regions$gdp_per_cpt, y=happy_regions$happiness_score))+ geom_point(aes(color = happy_regions$country)) +geom_smooth(method="lm") + xlab("GDP per Capita") + ylab("Happiness Score") 
+```
+
+
+
+
+```{r}
+num_hap_regions <- happy_regions[, c("happiness_rank", "happiness_score", "std_error", "gdp_per_cpt", "family", "life_exp", "freedom", "trust_corruption", "generosity", "dystopia_residual")]
+rquery.cormat(num_hap_regions)
 
 ```
 
