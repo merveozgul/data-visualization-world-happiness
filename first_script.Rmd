@@ -91,8 +91,15 @@ n_america <- happy_2015[which(happy_2015$region == "Latin America and Caribbean"
 m_east_n_africa <- happy_2015[which(happy_2015$region == "Middle East and Northern Africa"), ]
 
 #Australia & New Zealand
+aust_newzealand <- happy_2015[which(happy_2015$region == "Australia and New Zealand"), ]
 
+#Central and Eastern Europe
+central_easteu <- happy_2015[which(happy_2015$region == "Central and Eastern Europe"), ]
 
+#Eastern Asia
+east_asia <- happy_2015[which(happy_2015$region == "Eastern Asia"), ]
+
+#
 
 
 
