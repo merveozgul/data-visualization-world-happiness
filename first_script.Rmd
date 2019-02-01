@@ -62,8 +62,9 @@ sum(is.na(happy_2015))
 
 ```
 
-There is no missing values in our dataset, which will accelerate our analysis. We don't have to put any time to handle the missing values.
+Our data seems pretty much clean. Additionally, there are no missing values in our dataset, which will accelerate our analysis. We don't have to put any time to handle the missing values. 
 
+I also want to count how many countries and regions we have: 
 ```{r}
 #Number of countries in our dataset
 length(unique(happy_2015$country))
@@ -72,9 +73,78 @@ length(unique(happy_2015$country))
 length(unique(happy_2015$region))
 ```
 
-Since we have 10 regions and 158 countries, we can subset our dataset to regions and look at the distributions. 
+Since we have 10 regions and 158 countries, we can subset our dataset to regions and look at the distributions. By analyzing regions separetely, we can find out about their characteristics.
+But before zooming into the regions(subsetting), we can have a look at the world in general.
+
+#Identifying Happiest and Unhappiest Countries and Regions
+
+#Happiness Rank 
+Rank=1 indicates the happiest country in the world.Keeping that in the mind we can have a look the first 10 and last ten countries in the list.
+Top ten happiest countries:
+```{r}
+head(happy_2015, 10)
+```
+The happiest counties are mostly in Western Europe. 
+
+Least ten happiest countries:
+```{r}
+tail(happy_2015, 10)
+```
+Majority of the unhappiest countries are located in Sub-Saharan Africa. Countries which are not located in Sub-Saharan Africa and still included in this list are Syria and Afghanistan, which is not suprising if we consider the ongoing war and terrorism in those countries.
+
+Since happiness rank is based on happiness score, I would like to analyze the average happiness score among regions and then try to focus on the characteristics of the happiest and unhappiest regions.
+
+#Happiness Score based on Region
+```{r}
+library(dplyr)
+library(tidyr)
+library(plotly)
+
+#table with average happiness per region
+avg_happiness_region <-happy_2015 %>%
+        group_by(region) %>%          
+        summarise(avg_happiness = mean(happiness_score, round(1)))
+
+
+#Plotting the average happiness scores to compare regions
+p_avg_happiness_region <- plot_ly(avg_happiness_region, x = ~region, y = ~avg_happiness, type = 'bar', name = 'Average Happiness') %>% 
+  #add_trace(y = ~mean(happy_2015_copy$happiness_score), name = 'world')%>%
+  layout(title="Average Happiness per Region in 2015")
+show(p_avg_happiness_region)
+
+```
+Top 3 happiest regions based on average happiness score are: 
+ -Australia & New Zealand
+ -North America 
+ -Western Europe
+
+It is important to note that both of the first two regions include only 2 countries and Western Europe has 21 countries. Additionally all of these regions include countries with developed economies.
+
+The unhappiest region is Sub-Saharan Africa, which includes 40 different countries.
+
+#Correlogram
+Now we can create a correlogram to analyze the relationships. To do that we need only numeric columns.
+```{r}
+names(happy_2015_copy)
+num_hap <- happy_2015_copy[, c("happiness_rank", "happiness_score", "std_error", "gdp_per_cpt", "family", "life_exp", "freedom", "trust_corruption", "generosity", "dystopia_residual")]
+```
+
+```{r}
+library(corrplot)
+source("http://www.sthda.com/upload/rquery_cormat.r")
+rquery.cormat(num_hap)
+```
+
+
+
+
+
+
+
+
 
 #Subsetting our dataset
+Now we have subsetted the dataset into the regions we can do analysis on each region.
 ```{r}
 unique(happy_2015$region)
 
@@ -99,21 +169,13 @@ central_easteu <- happy_2015[which(happy_2015$region == "Central and Eastern Eur
 #Eastern Asia
 east_asia <- happy_2015[which(happy_2015$region == "Eastern Asia"), ]
 
-#
+#Sub-Saharan Africa
+sub_saharan_africa <- happy_2015[which(happy_2015$region == "Sub-Saharan Africa"), ]
 
-
+#Southern Asia
+south_asia <- happy_2015[which(happy_2015$region == "Southern Asia"), ]
 
 ```
-
-
-
-
-
-
-
-
-
-
 
 
 
