@@ -9,22 +9,105 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+*Analysis on World Happiness Dataset *
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+In this project I will analyze World Happiness dataset, which has 155 countries and different attributes. I took the dataset from Kaggle: https://www.kaggle.com/unsdsn/world-happiness/home
 
-```{r cars}
-summary(cars)
+
+
+#1) Loading the Dataset & Initial Exploration of Dataset
+
+I use "Import Dataset" at the Global Environment to load the dataset. Then I convert the dataset to dataframe. 
+
+```{r}
+#library(readr)
+#X2015 <- read_csv("~/Desktop/world-happiness-report/2015.csv")
+happy_2015 <- as.data.frame(X2015)
 ```
 
-## Including Plots
+I use some functions to have a glance at the dataset and understand it. I would like to check the column(attribute) names initially, to see if I should make any changes before starting to further explore the dataset. I like to change the names, optimize them in a meaningful and shorter manner. This way it makes it easier for me to call column names, in the future.
+```{r}
+#Viewing column names
+names(happy_2015)
+```
+It would be better to change all column names in a way that they won't include white space in their names. It is also good to note their original name in the metadata, in case the attribute name we create is not clear enough.
 
-You can also embed plots, for example:
+ [1] "Country"                       "Region"                       
+ [3] "Happiness Rank"                "Happiness Score"              
+ [5] "Standard Error"                "Economy (GDP per Capita)"     
+ [7] "Family"                        "Health (Life Expectancy)"     
+ [9] "Freedom"                       "Trust (Government Corruption)"
+[11] "Generosity"                    "Dystopia Residual"   
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r}
+#Changing column names
+names(happy_2015) <- c("country", "region", "happiness_rank", "happiness_score", "std_error", "gdp_per_cpt", "family", "life_exp", "freedom", "trust_corruption", "generosity", "dystopia_residual")
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+#Characteristics of the Dataset
+Now we can start with our analysis: 
+
+```{r}
+head(happy_2015)
+
+#Viewing stats about each attribute
+summary(happy_2015)
+
+#structure
+str(happy_2015)
+
+#missing values 
+sum(is.na(happy_2015))
+
+```
+
+There is no missing values in our dataset, which will accelerate our analysis. We don't have to put any time to handle the missing values.
+
+```{r}
+#Number of countries in our dataset
+length(unique(happy_2015$country))
+
+#Number of regions
+length(unique(happy_2015$region))
+```
+
+Since we have 10 regions and 158 countries, we can subset our dataset to regions and look at the distributions. 
+
+#Subsetting our dataset
+```{r}
+unique(happy_2015$region)
+
+#Subsetting Western Europe
+w_europe <- happy_2015[which(happy_2015$region == "Western Europe"), ]
+
+#North America
+n_america <- happy_2015[which(happy_2015$region == "North America"), ]
+
+#Latin America & Caribbean
+n_america <- happy_2015[which(happy_2015$region == "Latin America and Caribbean"), ]
+
+#Middle East and Northern Africa
+m_east_n_africa <- happy_2015[which(happy_2015$region == "Middle East and Northern Africa"), ]
+
+#Australia & New Zealand
+
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
