@@ -267,7 +267,7 @@ cor(happy_2015$happiness_score, happy_2015$freedom)
 Freedom doesn't have a very strong relationship as life expectancy, gdp per capita and family. 
 
 
-#Happiest Regions vs. Unhappiest Region
+#Focusing on the Happiest Regions and Unhappiest Region
 To make a comparison between regions, or to analyze each region separetely in the future, I subset the dataset according to the region.
 ##Subsetting our dataset
 Now we have subsetted the dataset into the regions we can do analysis on each region.
@@ -313,54 +313,81 @@ south_asia <- happy_2015[which(happy_2015$region == "Southern Asia"), ]
 
 ```
 
-#Happiest Regions
+#Analysis on Happiest Regions
 After subsetting the happiest regions as Aust. & New Zealand, Western Europe and North America, we have 25 countries.
 
-* Distributions with Histogram
-```{r, warning=FALSE, layout(t(1:10))}
-library(ggplot2)
-
-#subsetting numeric columns for drawing a histogram
-num_hap_regions <- happy_regions[, c("happiness_rank", "happiness_score", "std_error", "gdp_per_cpt", "family", "life_exp", "freedom", "trust_corruption", "generosity", "dystopia_residual")] 
-
-#iterating through every column and plotting a histogram
-column_names <- colnames(num_hap_regions)
-for (i in 1:ncol(num_hap_regions)) {
-  (ggplot(num_hap_regions, aes(num_hap_regions[,i])) + 
-        geom_histogram(fill="gray") + 
-          xlab(column_names[i]))}
-par(mfrow = c(5,2))
-
-```
-I didn't wanted to display the histograms individually, as I want to zoom in to sum attributes specifically. However, you can run the code and look at the distributions.
+### Correlation
 
 ```{r}
 num_hap_regions <- happy_regions[, c("happiness_rank", "happiness_score", "std_error", "gdp_per_cpt", "family", "life_exp", "freedom", "trust_corruption", "generosity", "dystopia_residual")]
-rquery.cormat(num_hap_regions)
 
-```
-
-###Happiest regions on the map
-```{r}
-library(tmap)
-
+r <- cor(num_hap_regions)
+corrplot(r, method="circle", type='upper', tl.cex=0.8, tl.col = 'black')
 ```
 
 
-##Comparison between Happy and Unhappy Regions
-
+####Gdp Per Capita
 ```{r}
 ggplot(happy_regions, aes(x=happy_regions$gdp_per_cpt, y=happy_regions$happiness_score))+ 
   geom_point(aes(color = happy_regions$region)) +
   geom_smooth(method="lm") + 
   scale_x_continuous(limits=c(1.2, 1.58)) +
   scale_y_continuous(limits=c(5.5, 8.5)) +
-  ggtitle("Happiest Region: Happiness Score & Gdp Per Capita") +
+  ggtitle("Happiest Region: Happiness Score & Gdp Per Capita (2015)") +
   xlab("GDP per Capita") + 
   ylab("Happiness Score") +  
   labs(colour="Region")  
   
 ```
+
+###Trust
+```{r}
+ggplot(happy_regions, aes(x=happy_regions$trust_corruption, y=happy_regions$happiness_score))+
+  geom_point(aes(color = happy_regions$region)) +geom_smooth(method="lm") + 
+  ggtitle("Happiest Regions: Happiness Score vs. Government Trust (2015)") +
+  xlab("Trust") +
+  ylab("Happiness Score") +
+   labs(colour="Region")  
+```
+
+
+###Freedom
+```{r}
+ggplot(happy_regions, aes(x=happy_regions$freedom, y=happy_regions$happiness_score))+
+  geom_point(aes(color = happy_regions$region)) +
+  geom_smooth(method="lm") + 
+  xlab("Freedom") + 
+  ylab("Happiness Score") +
+  ggtitle("Happiest Region: Happiness Score & Freedom (2015)") +
+   labs(colour="Region")  
+```
+
+
+
+####Relationship between Trust, Freedom and Happiness 
+```{r}
+p_freedom <- plot_ly(happy_regions, x=~trust_corruption, 
+                     y = ~freedom, 
+                     color = ~country, 
+                     size = ~happiness_score)%>% 
+                    layout(title="Happiest Regions: Trust and Freedom & Happiness Score (2015)", 
+                           xaxis= list(title = "Level of Trust"),
+                           yaxis= list(title = "Freedom"))
+
+
+htmltools::tagList(list(p_freedom))
+```
+
+Size denotes happiness score for the country. Greece seems to be an outlier with the lowest level of freedom, trust and happiness level in this region. 
+
+
+
+
+
+
+
+
+### Unhappiest Region: Sub-Saharan Africa
 
 ```{r}
 ggplot(sub_saharan_africa, aes(x=sub_saharan_africa$gdp_per_cpt, y=sub_saharan_africa$happiness_score))+ geom_point(aes(), color = "orange") +
@@ -374,14 +401,7 @@ ggplot(sub_saharan_africa, aes(x=sub_saharan_africa$gdp_per_cpt, y=sub_saharan_a
 ```
 
 
-```{r}
-ggplot(happy_regions, aes(x=happy_regions$trust_corruption, y=happy_regions$happiness_score))+
-  geom_point(aes(color = happy_regions$region)) +geom_smooth(method="lm") + 
-  ggtitle("Happiest Regions: Happiness Score vs. Government Trust") +
-  xlab("Gov. Trust") +
-  ylab("Happiness Score") +
-   labs(colour="Region")  
-```
+
 
 ```{r}
 ggplot(sub_saharan_africa, aes(x=sub_saharan_africa$trust_corruption, y=sub_saharan_africa$happiness_score))+
@@ -397,15 +417,7 @@ There is ak-lmost a reverse relationship between hapiness score and government t
 
 ## Freedom has a very strong correlation with happiness in the happiest countries. However it doesn't have as strong affect on happiness for Sub Saharan Africa... 
 
-```{r}
-ggplot(happy_regions, aes(x=happy_regions$freedom, y=happy_regions$happiness_score))+
-  geom_point(aes(color = happy_regions$region)) +
-  geom_smooth(method="lm") + 
-  xlab("Freedom") + 
-  ylab("Happiness Score") +
-  ggtitle("Happiest Region: Happiness Score & Freedom") +
-   labs(colour="Region")  
-```
+
 
 ```{r}
 ggplot(sub_saharan_africa, aes(x=sub_saharan_africa$freedom, y=sub_saharan_africa$happiness_score))+ 
