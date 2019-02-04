@@ -1,0 +1,553 @@
+---
+title: "Visualization & EDA on World Happiness Report"
+author: "Merve ozgul"
+date: "1/31/2019"
+output: 
+  html_document:
+    toc: true
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message=FALSE, warning = FALSE)
+
+```
+
+
+# Initial Observations on World Happiness Dataset 
+
+In this project I will analyze World Happiness dataset, which has 158 countries and different attributes. I took the dataset from Kaggle: https://www.kaggle.com/unsdsn/world-happiness/home . In this report I only analyzed the dataset from 2015.
+
+Before starting with my analysis, I would like to show a interactive map of world happiness score. As you hover on the countries, you can see the happiness score of the each country. Happiness score defined a metric measured in 2015 by asking the sampled people the question: "How would you rate your happiness on a scale of 0 to 10 where 10 is the happiest." according to Kaggle. 
+
+```{r}
+library(plotly)
+#df <- read.csv('https://raw.githubusercontent.com/plotly/datasets/master/2014_world_gdp_with_codes.csv')
+#names(df) <- c("Country", "gdp_billions", "code")
+#chappy_2015 <- happy_2015[ ,c("country", "happiness_rank", "happiness_score")]
+#names(chappy_2015) <- c("Country", "happiness_rank", "happiness_score")
+#df3 <- chappy_2015 %>% left_join(df, by="Country")
+#write.csv(df3, "df3.csv")
+#df3 <- read.csv('df3.csv')
+
+df <- read.csv('df3.csv')
+
+# light grey boundaries
+l <- list(color = toRGB("grey"), width = 0.2)
+
+# specify map projection/options
+g <- list(
+  showframe = FALSE,
+  showcoastlines = FALSE,
+  projection = list(type = 'Mercator')
+)
+
+p <- plot_geo(df) %>%
+  add_trace(
+    z = ~happiness_score, color = ~happiness_score, colors = 'Blues',
+    text = ~Country, locations = ~code, marker = list(line = l)
+  ) %>%
+  colorbar(title = 'Happiness Score', limits=c(0,10), thickness=10) %>%
+  layout(
+    title = 'World Happiness Score',
+    geo = g
+  )
+
+show(p)
+htmltools::tagList(list(p))
+```
+
+By looking at the map we can see that darkest(happiest) regions are North America, Australia and Northern Europe. The lighter regions seem to be concentrated in Africa.  
+
+##Initial Exploration of Dataset
+
+I use "Import Dataset" at the Global Environment to load the dataset. Then I convert the dataset to dataframe. 
+
+```{r}
+library(kableExtra)
+library(knitr)
+library(readr)
+X2015 <- read_csv("~/Desktop/world-happiness-report/2015.csv")
+happy_2015 <- as.data.frame(X2015)
+```
+
+I use some functions to have a glance at the dataset and understand it. I would like to check the column(attribute) names initially, to see if I should make any changes before starting to further explore the dataset. I like to change the names, optimize them in a meaningful and shorter manner. This way it makes it easier for me to call column names, in the future.
+```{r}
+#Viewing column names
+names(happy_2015)
+```
+It would be better to change all column names in a way that they won't include white space in their names. It is also good to note their original name in the metadata, in case the attribute name we create is not clear enough. I keep them just to be on the safe side :)
+
+```{r}
+#Changing column names
+names(happy_2015) <- c("country", "region", "happiness_rank", "happiness_score", "std_error", "gdp_per_cpt", "family", "life_exp", "freedom", "trust_corruption", "generosity", "dystopia_residual")
+```
+
+##Characteristics of the Dataset
+
+Now we can start exploring the dataset. I will look at the head of the data set to see the happiest countries.  
+```{r}
+kable(head(happy_2015[, c("country", "region", "happiness_rank", "happiness_score")]))%>%
+  kable_styling(bootstrap_options = c("striped", "hover"), font_size = 10)
+```
+
+I run initial summary statistics to have a general idea about the observaions. Also I look at the total number of missing values in the data.
+```{r, results='hide'}
+#Viewing stats about each attribute
+summary(happy_2015)
+
+#structure
+str(happy_2015)
+
+#missing values 
+sum(is.na(happy_2015))
+```
+
+```{r}
+library(fBasics) #library for the summary table
+library(kableExtra)
+#subsetting the dataset to only include numeric values
+num_hap <- happy_2015[, c("happiness_rank", "happiness_score", "std_error", "gdp_per_cpt", "family", "life_exp", "freedom", "trust_corruption", "generosity", "dystopia_residual")]
+
+#subsetting the summary table to view only stats below
+summary <- basicStats(num_hap)[c("Mean", "Stdev", "Median", "Minimum", "Maximum"),]
+#styling the summary table
+kable(summary)%>%
+  kable_styling(bootstrap_options = c("striped", "hover"), font_size = 10)
+```
+
+Our data seems pretty much clean. Additionally, there are no missing values in our dataset, which will accelerate our analysis. We don't have to put any time to handle the missing values. 
+
+I also want to count how many countries and regions we have, because in the overview section in Kaggle, it says that number of countries is 155. However As I count, I have 158 countries in dataset from 2015:
+
+```{r}
+#Number of countries in our dataset
+length(unique(happy_2015$country))
+
+#Number of regions
+length(unique(happy_2015$region))
+```
+
+Since we have 10 regions and 158 countries, we can subset our dataset to regions and look at the distributions. By analyzing regions separetely, we can find out about their characteristics.
+But before zooming into the regions(subsetting), we can have a look at the world in general.
+
+#Identifying Happiest and Unhappiest Countries and Regions
+
+#Exploring Happiness Rank 
+Rank=1 indicates the happiest country in the world.Keeping that in the mind we can have a look the first 10 and last ten countries in the list.
+
+#### Top ten happiest countries 
+
+```{r, results='hide'}
+library(kableExtra)
+kable(head(happy_2015, 10)) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+The happiest countries are mostly in Western Europe. 
+
+#### Least ten happiest countries
+Majority of the unhappiest countries are located in Sub-Saharan Africa. Countries which are not located in Sub-Saharan Africa and still included in this list are Syria and Afghanistan, which is not suprising if we consider the ongoing war and terrorism in those countries.
+```{r, results='hide'}
+library(kableExtra)
+kable(tail(happy_2015, 10)) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+<br>
+Since happiness rank is based on happiness score, I would like to analyze the average happiness score among regions and then try to focus on the characteristics of the happiest and unhappiest regions.
+<br>
+<br>
+#Exploring Happiness Score based on Regions
+You can see the countries individually, as you hover on the points.
+```{r}
+library(scales)
+box <- ggplot(happy_2015, aes(x = region, y = happiness_score, color = region)) +
+  geom_boxplot() + 
+  geom_jitter(aes(color=country), size = 0.5) +
+  ggtitle("Happiness Score for Regions and Countries") + 
+  coord_flip() + 
+  theme(legend.position="none")
+ggplotly(box)
+
+
+
+```
+
+<br>
+```{r}
+library(dplyr)
+library(tidyr)
+library(plotly)
+
+#table with average happiness per region
+avg_happiness_region <-happy_2015 %>%
+        group_by(region) %>%          
+        summarise(avg_happiness = mean(happiness_score, round(1)))
+
+
+#Plotting the average happiness scores to compare regions
+p_avg_happiness_region <- plot_ly(avg_happiness_region, x = ~region,
+                                  y = ~avg_happiness, 
+                                  type = 'bar', 
+                                  name = 'Average Happiness',
+                                  marker = list(color = 'rgb(158,202,225)')) %>% 
+  add_lines(y = ~mean(happy_2015$happiness_score), name = 'world average')%>%
+  layout(title="Average Happiness per Region in 2015", yaxis = list(title = "avg. happiness score"))
+htmltools::tagList(list(p_avg_happiness_region))
+
+```
+Top 3 happiest regions based on average happiness score are: 
+ -Australia & New Zealand
+ -North America 
+ -Western Europe
+
+It is important to note that both of the first two regions include only 2 countries and Western Europe has 21 countries. Additionally all of these regions include countries with developed economies.
+
+The unhappiest region is Sub-Saharan Africa, which includes 40 different countries. The second unhappiest region is Southern Asia.
+
+#Correlations: What factors have strong relationship with Happiness? 
+Now we can create a correlogram to analyze the relationships. To do that we need only numeric columns. So I select the numeric columns only and create a dataframe called num_hap.
+```{r}
+#names(happy_2015)
+num_hap <- happy_2015[, c("happiness_rank", "happiness_score", "std_error", "gdp_per_cpt", "family", "life_exp", "freedom", "trust_corruption", "generosity", "dystopia_residual")]
+```
+
+###Correlogram 
+```{r, results='hide'}
+library(corrplot)
+m <- cor(num_hap) #creating correlation matrix
+corrplot(m, method="circle", type='upper', tl.cex=0.8, tl.col = 'black')
+
+#Alternative way to create a correlogram
+#source("http://www.sthda.com/upload/rquery_cormat.r")
+#rquery.cormat(num_hap) 
+```
+
+###Heatmap
+Another way to show the correlation, with a heatmap. But I prefer the correlagram, as I find it easier to read.
+```{r, size='tiny'}
+#cormat<-rquery.cormat(num_hap, graphType="heatmap")
+corrplot(m, method="square", type='full', tl.cex=0.8, tl.col = 'black')
+```
+
+
+
+Now we can focus on the attributes that have strong correlation with happiness score.
+
+#Strong Positive Correlations (corr>+0.7) with Happiness Score
+Strong correlations will give me an idea about which attributes were more related to happiness score. It is always important to note that correlation and causation are different things!
+Now I will plot the top three strongly correlated attributes with happiness score: 
+*Gdp Per Capita
+*Family 
+*Life Expectancy
+
+####* Gdp Per Capita
+```{r}
+cor(happy_2015$happiness_score, happy_2015$gdp_per_cpt)
+```
+Countries that have higher gdp per capita seems to be happier. Since higher gdp per capita indicates a better standard of living for a country, it makes sense.
+```{r}
+ggplot(happy_2015, aes(x=happy_2015$gdp_per_cpt, y=happy_2015$happiness_score))+ 
+  geom_point(aes(color = happy_2015$region)) +
+  geom_smooth(method="lm") + 
+  xlab("GDP per Capita") + 
+  ylab("Happiness Score") + 
+  labs(colour="Region") +
+  ggtitle("All Regions: Happiness Score & GDP per Capita (2015)")
+```
+
+
+####* Family
+```{r}
+cor(happy_2015$happiness_score, happy_2015$family)
+```
+Although the explanation family attribute is not clear in the metadata, family contributes to happier people.
+
+```{r}
+try <- ggplot(happy_2015, aes(x=happy_2015$family, y=happy_2015$happiness_score))+ geom_point(aes(color=happy_2015$region)) +
+geom_smooth(method="lm") + 
+  xlab("Family") + 
+  ylab("Happiness Score") + 
+  labs(colour="Region")+
+  ggtitle("All Regions: Happiness Score & Family (2015)")+
+  theme(text = element_text(size=10)) 
+
+
+
+ggplotly(try) 
+```
+
+
+####* Life Expectancy
+```{r}
+cor(happy_2015$happiness_score, happy_2015$life_exp)
+```
+Life expectancy, probably the average years of life contributes to happier positively.
+```{r}
+ggplot(happy_2015, aes(x=happy_2015$life_exp, y=happy_2015$happiness_score))+ geom_point(aes(color = happy_2015$region)) +
+geom_smooth(method="lm") + 
+  xlab("Life Expectancy") + 
+  ylab("Happiness Score") + 
+  labs(colour="Region")+
+  ggtitle("All Regions: Happiness Score & Life Expectancy (2015)")
+```
+
+
+
+####* Freedom
+```{r}
+cor(happy_2015$happiness_score, happy_2015$freedom)
+```
+Freedom doesn't have a very strong relationship as life expectancy, gdp per capita and family. 
+
+
+#Focusing on the Happiest Regions and Unhappiest Region
+To make a comparison between regions, or to analyze each region separetely in the future, I subset the dataset according to the region.
+##Subsetting our dataset
+Now we have subsetted the dataset into the regions we can do analysis on each region.
+```{r}
+unique(happy_2015$region)
+#############################
+#Happiest Regions
+#############################
+
+#Australia & New Zealand
+aust_newzealand <- happy_2015[which(happy_2015$region == "Australia and New Zealand"), ]
+
+#Subsetting Western Europe
+w_europe <- happy_2015[which(happy_2015$region == "Western Europe"), ]
+
+#North America
+n_america <- happy_2015[which(happy_2015$region == "North America"), ]
+
+#Happiest regions Altogether
+happy_regions <- rbind(aust_newzealand, w_europe, n_america)
+
+
+#############################
+#  Unhappiest Region
+#############################
+#Sub-Saharan Africa
+sub_saharan_africa <- happy_2015[which(happy_2015$region == "Sub-Saharan Africa"), ]
+
+
+#############################
+# Other Regions
+#############################
+#Latin America & Caribbean
+l_america <- happy_2015[which(happy_2015$region == "Latin America and Caribbean"), ]
+#Middle East and Northern Africa
+m_east_n_africa <- happy_2015[which(happy_2015$region == "Middle East and Northern Africa"), ]
+#Central and Eastern Europe
+central_easteu <- happy_2015[which(happy_2015$region == "Central and Eastern Europe"), ]
+#Eastern Asia
+east_asia <- happy_2015[which(happy_2015$region == "Eastern Asia"), ]
+#Southern Asia
+south_asia <- happy_2015[which(happy_2015$region == "Southern Asia"), ]
+
+```
+
+#Happiest Regions: Australia & New Zealand, Western Europe and North America
+After subsetting the happiest regions as Aust. & New Zealand, Western Europe and North America, we have 25 countries.
+
+###Happiest Regions: Correlation
+
+```{r}
+num_hap_regions <- happy_regions[, c("happiness_rank", "happiness_score", "std_error", "gdp_per_cpt", "family", "life_exp", "freedom", "trust_corruption", "generosity", "dystopia_residual")]
+
+r <- cor(num_hap_regions)
+corrplot(r, method="circle", type='upper', tl.cex=0.8, tl.col = 'black')
+```
+
+
+###Gdp Per Capita and Happiness Score
+```{r}
+ggplot(happy_regions, aes(x=happy_regions$gdp_per_cpt, y=happy_regions$happiness_score))+ 
+  geom_point(aes(color = happy_regions$region)) +
+  geom_smooth(method="lm") + 
+  scale_x_continuous(limits=c(1.2, 1.58)) +
+  scale_y_continuous(limits=c(5.5, 8.5)) +
+  ggtitle("Happiest Region: Happiness Score & Gdp Per Capita (2015)") +
+  xlab("GDP per Capita") + 
+  ylab("Happiness Score") +  
+  labs(colour="Region")  
+  
+```
+
+###Trust and Happiness Score
+```{r}
+ggplot(happy_regions, aes(x=happy_regions$trust_corruption, y=happy_regions$happiness_score))+
+  geom_point(aes(color = happy_regions$region)) +
+  geom_smooth(method="lm") + 
+  ggtitle("Happiest Regions: Happiness Score vs. Government Trust (2015)") +
+  xlab("Trust") +
+  ylab("Happiness Score") +
+   labs(colour="Region")  
+```
+
+
+###Freedom and Happiness Score
+```{r}
+ggplot(happy_regions, aes(x=happy_regions$freedom, y=happy_regions$happiness_score))+
+  geom_point(aes(color = happy_regions$region)) +
+  geom_smooth(method="lm") + 
+  xlab("Freedom") + 
+  ylab("Happiness Score") +
+  ggtitle("Happiest Region: Happiness Score & Freedom (2015)") +
+   labs(colour="Region")  
+```
+
+
+
+####Happiest Region: Relationship between Trust, Freedom and Happiness 
+```{r}
+p_freedom <- plot_ly(happy_regions, x=~trust_corruption, 
+                     y = ~freedom, 
+                     color = ~country, 
+                     size = ~happiness_score)%>% 
+                    layout(title="Happiest Regions: Trust and Freedom & Happiness Score (2015)", 
+                           xaxis= list(title = "Level of Trust"),
+                           yaxis= list(title = "Freedom"))
+
+
+htmltools::tagList(list(p_freedom))
+```
+
+Size denotes happiness score for the country. Greece seems to be an outlier with the lowest level of freedom, trust and happiness level in this region. 
+
+
+#Unhappiest Region: Sub-Saharan Africa
+
+###Unhappiest Regions: Correlations
+```{r}
+num_ssa <- sub_saharan_africa[, c("happiness_rank", "happiness_score", "std_error", "gdp_per_cpt", "family", "life_exp", "freedom", "trust_corruption", "generosity", "dystopia_residual")]
+
+s <- cor(num_ssa)
+corrplot(s, method="circle", type='upper', tl.cex=0.8, tl.col = 'black')
+```
+
+Family, dystopia residual and gdp per capita seem to have correlation with happiness score.
+
+<br>
+<br>
+
+### GDP per Capita and Happiness Score
+```{r}
+ggplot(sub_saharan_africa, aes(x=sub_saharan_africa$gdp_per_cpt, y=sub_saharan_africa$happiness_score, label=sub_saharan_africa$country))+ 
+  geom_point(aes(), color = "orange") +
+  geom_smooth(method="lm") +  #adding line
+  geom_text(aes(label=sub_saharan_africa$country),hjust=0.5, vjust=0, size=2.3) + #putting country name on each point
+  scale_y_continuous(limits=c(2, 6)) + #adjusting the y axis
+  xlab("GDP per Capita") + 
+  ylab("Happiness Score") + 
+  ggtitle("Sub Saharan Africa: Happiness Score & Gdp Per Capita(2015)") +
+  labs(color="Sub Saharan Africa") 
+  
+```
+
+
+
+### Trust and Happiness Score
+```{r}
+ggplot(sub_saharan_africa, aes(x=sub_saharan_africa$trust_corruption, y=sub_saharan_africa$happiness_score))+
+  geom_point(aes(color = sub_saharan_africa$region)) +
+  geom_smooth(method="lm") + 
+  ggtitle("Sub Saharan Africa: Happiness Score & Trust (2015)") +
+  #geom_text(aes(label=sub_saharan_africa$country),hjust=0, vjust=0.5, size=2) +
+  xlab("Trust") +
+  ylab("Happiness Score") +
+   labs(colour="Region")
+```
+
+
+<br>
+Rwanda seems to be change our result for the graph, as it is an outlier. So it is better to draw the graph with excluding Rwanda. I checked the country name by remowing the comment at geom-text and see the country names of each point. 
+
+
+```{r}
+ssa_nr <- sub_saharan_africa[which(sub_saharan_africa$country != "Rwanda"), ]
+
+ggplot(ssa_nr, aes(x=ssa_nr$trust_corruption, y=ssa_nr$happiness_score))+
+  geom_point(aes(color = ssa_nr$region)) +
+  geom_smooth(method="lm") + 
+  ggtitle("Sub Saharan Africa: Happiness Score vs. Government Trust (2015)") +
+  #geom_text(aes(label=ssa_nr$country),hjust=0.5, vjust=0, size=1.5) +
+  xlab("Gov. Trust") +
+  ylab("Happiness Score") +
+   labs(colour="Region")
+```
+
+
+Slope of the line changed, as we removed Rwanda. 
+
+### Freedom and Happiness Score
+* Freedom has a very strong correlation with happiness in the happiest countries. However it doesn't have as strong affect on happiness for Sub Saharan Africa... 
+
+
+```{r}
+ggplot(sub_saharan_africa, aes(x=sub_saharan_africa$freedom, y=sub_saharan_africa$happiness_score))+ 
+  geom_point(aes(color = sub_saharan_africa$region))+
+  geom_smooth(method="lm") + 
+  xlab("Freedom") + 
+  ylab("Happiness Score") +
+  ggtitle("Sub-Saharan Africa: Happiness Score vs. Freedom")+
+   labs(colour="Region")  
+```
+
+<br>
+Freedom is stronger correlated with happiness score for happiest region. For Sub-Saharan Africa, freedom seems not to be highly correlated with happiness score.We can confirm the weak relationship for the unhappiest region by running a correlation:
+
+```{r}
+cor(sub_saharan_africa$happiness_score, sub_saharan_africa$gdp_per_cpt)
+```
+<br> 
+<br>
+####Sub-Saharan Africa: Relationship between Trust, Freedom and Happiness 
+```{r}
+p_freedom <- plot_ly(sub_saharan_africa, x=~trust_corruption, 
+                     y = ~freedom, 
+                     color = ~country, 
+                     size = ~happiness_score)%>% 
+                    layout(title="Sub-Saharan Africa: Trust and Freedom & Happiness Score (2015)", 
+                           xaxis= list(title = "Level of Trust"),
+                           yaxis= list(title = "Freedom"))
+
+
+htmltools::tagList(list(p_freedom))
+```
+
+
+# Regression Tree
+
+```{r}
+library(rpart)
+library(rpart.plot)
+
+#Removing happiness Rank
+happy_2015_tree <- happy_2015[,c("country", "region", "happiness_score", "std_error", "gdp_per_cpt", "family", "life_exp", "freedom", "trust_corruption", "generosity", "dystopia_residual")]
+
+fit <- rpart(formula = happiness_score~gdp_per_cpt+family+life_exp-std_error-trust_corruption+
+            freedom+generosity-dystopia_residual, 
+            data = happy_2015_tree,
+             method="anova") 
+
+#finding the optimal cp
+plotcp(fit)
+
+fit <- rpart(formula = happiness_score~gdp_per_cpt+family+life_exp-std_error-trust_corruption+
+            freedom+generosity-dystopia_residual, 
+            data = happy_2015_tree,
+             method="anova",  #regression tree
+            control=rpart.control(cp=0.043)) #optimal cp value 
+
+rpart.plot(fit, box.palette = c("blue","orange"), main="Regression Tree for Happiness Score")
+
+
+```
+
+
+I used regression tree as our dependent variable is happiness score.I also wanted to prune the tree by finding the optimal complexity parameter(cp). I didn't evaluate the performance of this regression tree. So the next step to measure the performance of this model can be using the dataset of 2016(removing the labels), do predictions with this model and then we could evaluate the performance with AUC.
+
+
+<br> 
+<br>
